@@ -9,18 +9,9 @@
  *
  */
 
-/**
- * Vector addition: C = A + B.
- *
- * This sample is a very basic sample that implements element by element
- * vector addition. It is the same as the sample illustrating Chapter 2
- * of the programming guide with some additions like error checking.
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
 // For the CUDA runtime routines (prefixed with "cuda_")
 #include <cuda_runtime.h>
 
@@ -31,8 +22,9 @@
  * Computes the vector addition of A and B into C. The 3 vectors have the same
  * number of elements numElements.
  */
-// A contains input
+
 __global__ void matrix_mul(float *A, float *C, float a, float b, float c, float d, int state_size, int t_bit){
+    // A contains input
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
     //i=x1, flipped=x2
@@ -43,7 +35,6 @@ __global__ void matrix_mul(float *A, float *C, float a, float b, float c, float 
             C[flipped] = (A[i] * c ) + (A[flipped] * d);
         }
     }
-   
 }
 
 
@@ -61,34 +52,34 @@ int main(int argc, char **argv)
      float*  state_vector  = (float*)malloc(vector_size * sizeof(float));
 
      float number;
-      FILE* in_file = fopen(argv[1], "r"); // read only  
+     FILE* in_file = fopen(argv[1], "r"); // read only  
      
-      if (! in_file ) // equivalent to saying if ( in_file == NULL ) 
-         {  
-            printf("oops, file can't be read\n"); 
-            exit(-1); 
-         } 
+     if (!in_file) // equivalent to saying if ( in_file == NULL ) 
+        {  
+           printf("oops, file can't be read\n"); 
+           exit(-1); 
+        } 
 
-      // attempt to read the next line and store 
-      // the value in the "number" variable 
-      int count = 0;
-      float last;
-      while ( fscanf(in_file, "%f", &number ) != EOF )  
-         { 
-           if (count==0) a = number;
-           else if (count==1) b = number;
-           else if (count==2) c = number;
-           else if (count==3) d = number;
+     // attempt to read the next line and store 
+     // the value in the "number" variable 
+     int count = 0;
+     float last;
+     while ( fscanf(in_file, "%f", &number ) != EOF )  
+        { 
+          if (count==0) a = number;
+          else if (count==1) b = number;
+          else if (count==2) c = number;
+          else if (count==3) d = number;
 
-           else {
-               state_vector[count-4] = number; 
+          else {
+              state_vector[count-4] = number; 
 
-            }
+           }
 
-           last = number;
-           count++;
-         } 
-           
+          last = number;
+          count++;
+        } 
+          
      t_bit = (int) last;
      final_size = count - 5;
     //printf("Qubit %d size: %d a:%f, b:%f c:%f d:%f\n", qubit, final_size, a, b, c, d);
