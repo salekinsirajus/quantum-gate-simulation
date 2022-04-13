@@ -33,3 +33,6 @@
 
 # MACOS
 __MACOSX/
+
+# git
+.github
