@@ -1,5 +1,6 @@
 FROM pli11/gpgpusim:cuda_10_1
 
-ADD . /code
+ENV foo 1
+ADD . /code/
 
 RUN "/bin/bash"
