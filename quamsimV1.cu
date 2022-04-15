@@ -19,8 +19,8 @@
 /**
  * CUDA Kernel Device code
  *
- * Computes the vector addition of A and B into C. The 3 vectors have the same
- * number of elements numElements.
+ * Performs application of quantum gate to the quantum state supplied in
+ * A. C contains the state after the application. 
  */
 
 __global__ void matrix_mul(float *A, float *C, float a, float b, float c, float d, int state_size, int t_bit){
@@ -104,7 +104,6 @@ int main(int argc, char **argv){
     // Print the vector length to be used, and compute its size
     int numElements = count - NUM_QUANTUM_GATES;
     size_t size = numElements * sizeof(float);
-    //printf("[Vector addition of %d elements]\n", numElements);
 
     // Allocate the host input vector A
     float *h_A = (float *)malloc(size);
@@ -145,7 +144,6 @@ int main(int argc, char **argv){
 
     int round=0;
     while (round < 6){
-        printf("round %d\n", round);
         float a,b,c,d;
         a=gates[round][0];
         b=gates[round][1];
@@ -155,7 +153,6 @@ int main(int argc, char **argv){
 
         // Copy the host input vectors A and B in host memory to the device input vectors in
         // device memory
-        //printf("Copy input data from the host memory to the CUDA device\n");
         err = cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
 
         if (err != cudaSuccess)
@@ -168,7 +165,6 @@ int main(int argc, char **argv){
         // Launch the Vector Add CUDA Kernel
         int threadsPerBlock = 256;
         int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
-        //printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
         matrix_mul<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_C, a, b, c, d, numElements, t_bit);
         err = cudaGetLastError();
 
@@ -180,7 +176,6 @@ int main(int argc, char **argv){
 
         // Copy the device result vector in device memory to the host result vector
         // in host memory.
-        //printf("Copy output data from the CUDA device to the host memory\n");
         err = cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
 
         if (err != cudaSuccess)
@@ -189,9 +184,12 @@ int main(int argc, char **argv){
             exit(EXIT_FAILURE);
         }
 
+        // Important: this takes the output from the last round, and copies it
+        // over to the input array of the next round.
         memcpy(h_A, h_C, size);
         round++;
     }
+
     // Verify that the result vector is correct
     for (int i = 0; i < numElements; ++i)
     {
