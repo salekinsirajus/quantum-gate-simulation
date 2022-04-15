@@ -53,19 +53,18 @@ int main(int argc, char **argv){
     float gates[NUM_QUANTUM_GATES][QUANTUM_GATE_SIZE];
     int T_BITS[NUM_QUANTUM_GATES];
 
+    FILE* in_file = fopen(argv[1], "r");                   // read only
     // equivalent to saying if ( in_file == NULL )
      if (!in_file){
         printf("oops, file can't be read\n");
         exit(-1);
      }
 
-    FILE* in_file = fopen(argv[1], "r");                   // read only
-    char input_elem[32];                                   // arbitrary length
-
     // Read and store the quantum gate matrices in a 2-D array called gates
     // Each matrix is reprsented like this:
     // [a,b,c,d] = a  b
     //             c  d
+    char input_elem[32];                                   // arbitrary length
     for (int i=0; i < NUM_QUANTUM_GATES; i++){
        for (int j=0; j < QUANTUM_GATE_SIZE; j++){
            int r = fscanf(in_file, "%s", &input_elem[0]);
@@ -144,12 +143,15 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
+    int round=0;
+    while (round < 6){
+        printf("round %d\n", round);
         float a,b,c,d;
-        a=gates[0][0];
-        b=gates[0][1];
-        c=gates[0][2];
-        d=gates[0][3];
-        int t_bit = T_BITS[0];
+        a=gates[round][0];
+        b=gates[round][1];
+        c=gates[round][2];
+        d=gates[round][3];
+        int t_bit = T_BITS[round];
 
         // Copy the host input vectors A and B in host memory to the device input vectors in
         // device memory
@@ -187,6 +189,9 @@ int main(int argc, char **argv){
             exit(EXIT_FAILURE);
         }
 
+        memcpy(h_A, h_C, size);
+        round++;
+    }
     // Verify that the result vector is correct
     for (int i = 0; i < numElements; ++i)
     {
