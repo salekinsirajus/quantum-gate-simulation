@@ -16,6 +16,7 @@
 #include <cuda_runtime.h>
 
 
+const int fragment_size = 64;
 /**
  * CUDA Kernel Device code
  *
@@ -23,17 +24,39 @@
  * A. C contains the state after the application. 
  */
 
-__global__ void matrix_mul(float *A, float *C, float a, float b, float c, float d, int state_size, int t_bit){
+__global__ void matrix_mul(
+        float *A, float *C, float a, float b, float c, float d, int state_size, int t_bit){
     // A contains input
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
+  
+    //int i = blockDim.x * blockIdx.x + threadIdx.x;
+    int i = threadIdx.x;
 
+    //FIXME: how to get the fragment_num, or could it be blockIdx??
+    //syncrhonize
+    int fragment_num = blockIdx.x;
+    int start = fragment_num * fragment_size;
+
+    //copy into shared memory from global
+    __shared__ float S_A[fragment_size];
+    __shared__ float S_C[fragment_size];
+    for (int j=start; j < start+fragment_size; j++){
+        S_A[j] = A[j];
+    }
+
+    //the matrix multiplication code: we find the pair
+    //that will work together
     //i=x1, flipped=x2
     int flipped = ((1 << t_bit) | i);
     if (i < state_size){
         if (flipped  > i){
-            C[i] = (A[i] * a ) + (A[flipped] * b);
-            C[flipped] = (A[i] * c ) + (A[flipped] * d);
+            S_C[i] = (S_A[i] * a ) + (S_A[flipped] * b);
+            S_C[flipped] = (S_A[i] * c ) + (S_A[flipped] * d);
         }
+    }
+
+    __syncthreads();
+    for (int j=start; j < start+fragment_size; j++){
+        C[j] = S_C[j];
     }
 }
 
@@ -95,7 +118,7 @@ int main(int argc, char **argv){
     }
 
     /////////////////////////////////////////////////////////////////
-    //                    CUDA Error Detection                     //
+    //                    Kernel Code                              //
     /////////////////////////////////////////////////////////////////
 
     // Error code to check return values for CUDA calls
@@ -143,6 +166,14 @@ int main(int argc, char **argv){
     }
 
     int round=0;
+    // data to load to shared memory
+    // 0..63, 64..
+    //numElements would be 64 and map which 64 to load into the shared memory
+    int num_fragments = (int) numElements / fragment_size;   
+    //TODO: figure out how to move the gloabl memory into shared memory
+    // need syncthreads
+    // does the shared stuff hapen within the kernel/otuside the kernel and how
+
     while (round < 6){
         float a,b,c,d;
         a=gates[round][0];
@@ -163,9 +194,9 @@ int main(int argc, char **argv){
 
 
         // Launch the Vector Add CUDA Kernel
-        int threadsPerBlock = 256;
+        int threadsPerBlock = fragment_size / 2; //2^5 (not 2^6)
         int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
-        matrix_mul<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_C, a, b, c, d, numElements, t_bit);
+        matrix_mul<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_C, a, b, c, d, fragment_size, t_bit);
         err = cudaGetLastError();
 
         if (err != cudaSuccess)
