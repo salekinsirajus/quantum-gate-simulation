@@ -54,9 +54,6 @@ __global__ void matrix_mul(
     //int i = blockDim.x * blockIdx.x + threadIdx.x;
     int i = threadIdx.x;
 
-    int fragment_num = blockIdx.x;
-    int start = fragment_num * fragment_size;
-
     //copy into shared memory from global
     __shared__ float S_A[fragment_size];
     __shared__ float S_C[fragment_size];
@@ -71,14 +68,18 @@ __global__ void matrix_mul(
     //the matrix multiplication code: we find the pair
     //that will work together
     //i=x1, flipped=x2
-    int flipped = ((1 << t_bit) | i);
-    if (i < state_size){
-        if (flipped  > i){
-            S_C[i] = (S_A[i] * a ) + (S_A[flipped] * b);
-            S_C[flipped] = (S_A[i] * c ) + (S_A[flipped] * d);
+    int round = 0;
+    while (round < 6){
+        int flipped = ((1 << round) | i);
+        if (i < state_size){
+            if (flipped  > i){
+                S_C[i] = (S_A[i] * a ) + (S_A[flipped] * b);
+                S_C[flipped] = (S_A[i] * c ) + (S_A[flipped] * d);
+            }
         }
+        round++;
     }
-
+    //copy data out of shared memory to global memory
     __syncthreads();
     filled = 0;
     for (int j=0; j < state_size; j++){
