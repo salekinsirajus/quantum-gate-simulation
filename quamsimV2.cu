@@ -241,6 +241,25 @@ int main(int argc, char **argv){
         }
     }
 
+    // Allocate memory for gates on devices
+    float *gates_device = NULL;
+    size_t gates_size = NUM_QUANTUM_GATES * QUANTUM_GATE_SIZE * sizeof(float);
+    err = cudaMalloc((void **)&gates_device, gates_size);
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to allocate gates array (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+
+    err = cudaMemcpy(gates_device, gates, gates_size, cudaMemcpyHostToDevice);
+
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to copy gates from host to device (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+
+
     // Allocate the array for inactive bits 
     int *inactive_bits_device = NULL;
     err = cudaMalloc((void **)&inactive_bits_device, inactive_bit_count);
