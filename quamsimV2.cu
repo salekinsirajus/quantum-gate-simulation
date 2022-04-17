@@ -49,8 +49,8 @@ int bit_at_position(int number, int position){
 
 
 __global__ void matrix_mul(
-        float *A, int *B, float *C, float a, float b, float c, float d, int t_bit, int state_size, int *inactive_bits, int inactive_bit_count){
-  
+        float *A, int *B, float *C, float *gates, int state_size, int *inactive_bits, int inactive_bit_count){
+
     //int i = blockDim.x * blockIdx.x + threadIdx.x;
     int i = threadIdx.x;
 
@@ -65,11 +65,17 @@ __global__ void matrix_mul(
         }
     }
 
+    float a, b, c, d;
     //the matrix multiplication code: we find the pair
     //that will work together
     //i=x1, flipped=x2
     int round = 0;
     while (round < 6){
+        a = gates[(round * 4) + 0];
+        b = gates[(round * 4) + 1];
+        c = gates[(round * 4) + 2];
+        d = gates[(round * 4) + 3];
+
         int flipped = ((1 << round) | i);
         if (i < state_size){
             if (flipped  > i){
@@ -108,20 +114,23 @@ int main(int argc, char **argv){
         exit(-1);
      }
 
+    int NUM_QUANTUM_GATES = 6;
+    int QUANTUM_GATE_SIZE = 4;
+    float gates[NUM_QUANTUM_GATES * QUANTUM_GATE_SIZE];
+    int T_BITS[NUM_QUANTUM_GATES];
+
     // Read and store the quantum gate matrices in a 2-D array called gates
     // Each matrix is reprsented like this:
     // [a,b,c,d] = a  b
     //             c  d
     char input_elem[32];                                   // arbitrary length
-    for (int i=0; i < NUM_QUANTUM_GATES; i++){
-       for (int j=0; j < QUANTUM_GATE_SIZE; j++){
-           int r = fscanf(in_file, "%s", &input_elem[0]);
-           if (r == EOF){
-               printf("Incorrect input formatting. Abort\n");
-               return 1;
-           }
-           gates[i][j] = atof(input_elem);
-       }
+    for (int j=0; j < NUM_QUANTUM_GATES * QUANTUM_GATE_SIZE; j++){
+        int r = fscanf(in_file, "%s", &input_elem[0]);
+        if (r == EOF){
+            printf("Incorrect input formatting. Abort\n");
+            return 1;
+        }
+        gates[j] = atof(input_elem);
     }
 
     // Read the rest of the file
@@ -301,18 +310,11 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
-    float a,b,c,d;
-    a=gates[round][0];
-    b=gates[round][1];
-    c=gates[round][2];
-    d=gates[round][3];
-    int t_bit = T_BITS[round];
 
     // Launch the Vector Add CUDA Kernel
     int threadsPerBlock = fragment_size / 2; //2^5 (not 2^6)
     int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
-    matrix_mul<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, a, b, c, d,
-            t_bit, numElements, inactive_bits_device, inactive_bit_count);
+    matrix_mul<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, gates_device, numElements, inactive_bits_device, inactive_bit_count);
     err = cudaGetLastError();
 
     if (err != cudaSuccess)
