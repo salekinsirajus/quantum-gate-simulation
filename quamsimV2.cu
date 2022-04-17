@@ -69,18 +69,24 @@ __global__ void matrix_mul(
     //the matrix multiplication code: we find the pair
     //that will work together
     //i=x1, flipped=x2
+    //printf("=============== BlockID %d ====================\n");
     int round = 0;
     while (round < 6){
         a = gates[(round * 4) + 0];
         b = gates[(round * 4) + 1];
         c = gates[(round * 4) + 2];
         d = gates[(round * 4) + 3];
+        
 
-        int flipped = ((1 << round) | i);
-        if (i < state_size){
+        int flipped = i ^ (1 << round);
+        //printf("pair %d <==> %d\n", flipped, i);
+        if (i < fragment_size){
             if (flipped  > i){
-                S_C[i] = (S_A[i] * a ) + (S_A[flipped] * b);
-                S_C[flipped] = (S_A[i] * c ) + (S_A[flipped] * d);
+                float s_a_i, s_a_flipped;
+                s_a_i = S_A[i];
+                s_a_flipped = S_A[flipped];
+                S_A[i] = (s_a_i * a ) + (s_a_flipped * b);
+                S_A[flipped] = (s_a_i * c ) + (s_a_flipped * d);
             }
         }
         round++;
@@ -224,10 +230,6 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
-    int round=0;
-    // data to load to shared memory
-    // 0..63, 64..
-    //numElements would be 64 and map which 64 to load into the shared memory
     int num_fragments = (int) numElements / fragment_size;
 
     // Actual size of n - the n-qubit state
@@ -261,6 +263,17 @@ int main(int argc, char **argv){
         fprintf(stderr, "Failed to copy gates from host to device (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
+
+    int round = 0;
+    float a, b, c, d;
+    while (round < 6){
+        a = gates[(round * 4) + 0];
+        b = gates[(round * 4) + 1];
+        c = gates[(round * 4) + 2];
+        d = gates[(round * 4) + 3];
+        printf("gate %d: a=%3f, b=%3f, c=%3f, d=%3f\n", round, a, b, c, d);
+        ++round;
+    }    
 
 
     // Allocate the array for inactive bits
@@ -310,6 +323,11 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
+    // Verify that the result vector is correct
+    for (int i = 0; i < numElements; ++i)
+    {
+        printf("%.3f\n", h_C[i]);
+    }
 
     // Launch the Vector Add CUDA Kernel
     int threadsPerBlock = fragment_size / 2; //2^5 (not 2^6)
