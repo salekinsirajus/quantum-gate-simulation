@@ -261,7 +261,7 @@ int main(int argc, char **argv){
     // Calculate blockID assignments using the number of state vectors
     // TODO: make sure you have the size right
     // TODO: make sure the inactive bit array is in sorted order (0..n)
-    for (int i=0; i < size; i++){
+    for (int i=0; i < numElements; i++){
        int block_id = 0; 
        for (int ib=0; ib < inactive_bit_count; ib++){
            int cib = inactive_bits[ib];
