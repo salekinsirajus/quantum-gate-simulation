@@ -21,7 +21,7 @@ const int fragment_size = 64;
  * CUDA Kernel Device code
  *
  * Performs application of quantum gate to the quantum state supplied in
- * A. C contains the state after the application. 
+ * A. C contains the state after the application.
  */
 
 bool in_array(int key, int *array, int size){
@@ -33,7 +33,7 @@ bool in_array(int key, int *array, int size){
         if (key == array[i]){
             return true;
         }
-    } 
+    }
 
     return false;
 }
@@ -100,12 +100,6 @@ int main(int argc, char **argv){
     /////////////////////////////////////////////////////////////////
     //                    Reading From Input                       //
     /////////////////////////////////////////////////////////////////
-    // How many quantum gate matrices we will have? variable or fixed?
-    // Six - fixed
-    int NUM_QUANTUM_GATES = 6;
-    int QUANTUM_GATE_SIZE = 4;
-    float gates[NUM_QUANTUM_GATES][QUANTUM_GATE_SIZE];
-    int T_BITS[NUM_QUANTUM_GATES];
 
     FILE* in_file = fopen(argv[1], "r");                   // read only
     // equivalent to saying if ( in_file == NULL )
@@ -225,13 +219,13 @@ int main(int argc, char **argv){
     // data to load to shared memory
     // 0..63, 64..
     //numElements would be 64 and map which 64 to load into the shared memory
-    int num_fragments = (int) numElements / fragment_size;   
+    int num_fragments = (int) numElements / fragment_size;
 
     // Actual size of n - the n-qubit state
     int n = (int)log2((float)numElements);
 
     // Extrapolate the inactive bits from the list of active bits
-    int num_active_bits = 6; // God this is hardcoded  
+    int num_active_bits = 6; // God this is hardcoded
     int inactive_bits[n - num_active_bits];
     int inactive_bit_count = 0;
     for (int i=0; i <n; i++){
@@ -260,7 +254,7 @@ int main(int argc, char **argv){
     }
 
 
-    // Allocate the array for inactive bits 
+    // Allocate the array for inactive bits
     int *inactive_bits_device = NULL;
     err = cudaMalloc((void **)&inactive_bits_device, inactive_bit_count);
     if (err != cudaSuccess)
@@ -282,7 +276,7 @@ int main(int argc, char **argv){
     // TODO: make sure you have the size right
     // TODO: make sure the inactive bit array is in sorted order (0..n)
     for (int i=0; i < numElements; i++){
-       int block_id = 0; 
+       int block_id = 0;
        for (int ib=0; ib < inactive_bit_count; ib++){
            int cib = inactive_bits[ib];
            int b = bit_at_position(i, cib);
