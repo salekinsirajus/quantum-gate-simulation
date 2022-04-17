@@ -188,6 +188,19 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
+
+    // Copy the host input vectors A and B in host memory to the device input vectors in
+    // device memory
+    printf("Memory corruption #1\n");
+    err = cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
+
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to copy vector A from host to device (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+
+
     // Allocate the device input vector B
     int *d_B = NULL;
     err = cudaMalloc((void **)&d_B, b_size);
@@ -253,7 +266,7 @@ int main(int argc, char **argv){
        for (int ib=0; ib < inactive_bit_count; ib++){
            int cib = inactive_bits[ib];
            int b = bit_at_position(i, cib);
-           printf("Bit %d at position: %d\ of number %d \n", b, cib, i);
+           //printf("Bit %d at position: %d\ of number %d \n", b, cib, i);
            block_id = block_id << 1;
 
            if (b==1){    // setting bit according to the original number
@@ -265,29 +278,21 @@ int main(int argc, char **argv){
        h_B[i] = block_id;
     }
 
-    printf("block_id assignments\n");
-    for (int i=0; i< size; i++){
-        printf("state: %d, assigment: %d\n", i, h_B[i]);
+    err = cudaMemcpy(d_B, h_B, b_size, cudaMemcpyHostToDevice);
+    printf("Memory corruption #2\n");
+
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to copy vector B from host to device (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
     }
 
-    round=0;
     float a,b,c,d;
     a=gates[round][0];
     b=gates[round][1];
     c=gates[round][2];
     d=gates[round][3];
     int t_bit = T_BITS[round];
-
-    // Copy the host input vectors A and B in host memory to the device input vectors in
-    // device memory
-    err = cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
-
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to copy vector A from host to device (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
-
 
     // Launch the Vector Add CUDA Kernel
     int threadsPerBlock = fragment_size / 2; //2^5 (not 2^6)
@@ -311,10 +316,6 @@ int main(int argc, char **argv){
         fprintf(stderr, "Failed to copy vector C from device to host (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
-
-    // Important: this takes the output from the last round, and copies it
-    // over to the input array of the next round.
-    memcpy(h_A, h_C, size);
 
     // Verify that the result vector is correct
     for (int i = 0; i < numElements; ++i)
