@@ -17,12 +17,6 @@
 #include <cuda_runtime.h>
 
 const int fragment_size = 64;
-/**
- * CUDA Kernel Device code
- *
- * Performs application of quantum gate to the quantum state supplied in
- * A. C contains the state after the application.
- */
 
 bool in_array(int key, int *array, int size){
     /*
@@ -47,16 +41,19 @@ int bit_at_position(int number, int position){
     return 0;
 }
 
-
-__global__ void matrix_mul(
-        float *A, int *B, float *C, float *gates, int state_size, int *inactive_bits, int inactive_bit_count){
+/**
+ * CUDA Kernel Device code
+ *
+ * Performs application of quantum gate to the quantum state supplied in
+ * A. C contains the state after the application.
+ */
+__global__ void matrix_mul(float *A, int *B, float *C, float *gates, int state_size, int *inactive_bits, int inactive_bit_count){
 
     //int i = blockDim.x * blockIdx.x + threadIdx.x;
     int i = threadIdx.x;
 
     //copy into shared memory from global
     __shared__ float S_A[fragment_size];
-    __shared__ float S_C[fragment_size];
     int filled = 0;
     for (int j=0; j < state_size; j++){
         if (B[j] == blockIdx.x){
@@ -87,7 +84,7 @@ __global__ void matrix_mul(
                 S_A[flipped] = (s_a_i * c ) + (s_a_flipped * d);
             }
         }
-        round++;
+        ++round;
     }
 
     //copy data out of shared memory to global memory
