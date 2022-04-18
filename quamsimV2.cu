@@ -296,7 +296,6 @@ int main(int argc, char **argv){
     }
 
     err = cudaMemcpy(d_B, h_B, b_size, cudaMemcpyHostToDevice);
-    printf("Memory corruption #2\n");
 
     if (err != cudaSuccess)
     {
