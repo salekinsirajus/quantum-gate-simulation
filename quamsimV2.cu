@@ -305,7 +305,10 @@ int main(int argc, char **argv){
     }
 
     // Launch the Vector Add CUDA Kernel
-    int threadsPerBlock = fragment_size / 2; //2^5 (not 2^6)
+    // Using 2^6 threadBlocks it work - there is divergence in our so we cant
+    // reduce the threads to 2^6 yet
+    // So 2^5 threads causes error
+    int threadsPerBlock = fragment_size;
     int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
     matrix_mul<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, gates_device, numElements, inactive_bits_device, inactive_bit_count);
     err = cudaGetLastError();
