@@ -69,7 +69,6 @@ __global__ void matrix_mul(
     //the matrix multiplication code: we find the pair
     //that will work together
     //i=x1, flipped=x2
-    //printf("=============== BlockID %d ====================\n");
     int round = 0;
     while (round < 6){
         a = gates[(round * 4) + 0];
@@ -79,7 +78,6 @@ __global__ void matrix_mul(
         
 
         int flipped = i ^ (1 << round);
-        //printf("pair %d <==> %d\n", flipped, i);
         if (i < fragment_size){
             if (flipped  > i){
                 float s_a_i, s_a_flipped;
@@ -91,6 +89,7 @@ __global__ void matrix_mul(
         }
         round++;
     }
+
     //copy data out of shared memory to global memory
     __syncthreads();
     filled = 0;
@@ -100,7 +99,6 @@ __global__ void matrix_mul(
             filled++;
         }
     }
-
 }
 
 
@@ -230,8 +228,6 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
-    int num_fragments = (int) numElements / fragment_size;
-
     // Actual size of n - the n-qubit state
     int n = (int)log2((float)numElements);
 
@@ -264,18 +260,6 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
-    int round = 0;
-    float a, b, c, d;
-    while (round < 6){
-        a = gates[(round * 4) + 0];
-        b = gates[(round * 4) + 1];
-        c = gates[(round * 4) + 2];
-        d = gates[(round * 4) + 3];
-        printf("gate %d: a=%3f, b=%3f, c=%3f, d=%3f\n", round, a, b, c, d);
-        ++round;
-    }    
-
-
     // Allocate the array for inactive bits
     int *inactive_bits_device = NULL;
     err = cudaMalloc((void **)&inactive_bits_device, inactive_bit_count);
@@ -302,7 +286,7 @@ int main(int argc, char **argv){
        for (int ib=0; ib < inactive_bit_count; ib++){
            int cib = inactive_bits[ib];
            int b = bit_at_position(i, cib);
-           //printf("Bit %d at position: %d\ of number %d \n", b, cib, i);
+
            block_id = block_id << 1;
 
            if (b==1){    // setting bit according to the original number
@@ -312,7 +296,6 @@ int main(int argc, char **argv){
            }
        }
        h_B[i] = block_id;
-       printf("State %d is assigned to block %d\n", i, block_id);
     }
 
     err = cudaMemcpy(d_B, h_B, b_size, cudaMemcpyHostToDevice);
@@ -322,12 +305,6 @@ int main(int argc, char **argv){
     {
         fprintf(stderr, "Failed to copy vector B from host to device (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
-    }
-
-    // Verify that the result vector is correct
-    for (int i = 0; i < numElements; ++i)
-    {
-        printf("%.3f\n", h_C[i]);
     }
 
     // Launch the Vector Add CUDA Kernel
@@ -372,7 +349,7 @@ int main(int argc, char **argv){
 
     if (err != cudaSuccess)
     {
-        fprintf(stderr, "Failed to free device vector A (error code %s)!\n", cudaGetErrorString(err));
+        fprintf(stderr, "Failed to free device vector B (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
 
