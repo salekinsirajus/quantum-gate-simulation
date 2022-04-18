@@ -41,7 +41,7 @@ bool in_array(int key, int *array, int size){
 int bit_at_position(int number, int position){
     /* Given a number, it returns the bit at that position */
     int mask = 1 << position;
-    if (number & position){
+    if (number & mask){
         return 1;
     }
     return 0;
@@ -312,6 +312,7 @@ int main(int argc, char **argv){
            }
        }
        h_B[i] = block_id;
+       printf("State %d is assigned to block %d\n", i, block_id);
     }
 
     err = cudaMemcpy(d_B, h_B, b_size, cudaMemcpyHostToDevice);
