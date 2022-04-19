@@ -50,7 +50,7 @@ int bit_at_position(int number, int position){
 __global__ void matrix_mul(float *A, int *B, float *C, float *gates, int state_size, int *inactive_bits, int inactive_bit_count){
 
     //int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int i = threadIdx.x;
+    int tid = threadIdx.x;
 
     //copy into shared memory from global
     __shared__ float S_A[fragment_size];
@@ -63,6 +63,18 @@ __global__ void matrix_mul(float *A, int *B, float *C, float *gates, int state_s
     }
 
     float a, b, c, d;
+
+    //thread coarsening = we are going to use 16 threads instead of 64
+    //distribute the work using into the 16 threads
+    int elements[4];
+    int cnt=0;
+    for (int m=0; m < 64; m++){
+        if (tid == (m % 16)){
+            elements[cnt] = m;
+            ++cnt;
+        } 
+    }
+
     //the matrix multiplication code: we find the pair
     //that will work together
     //i=x1, flipped=x2
@@ -73,9 +85,9 @@ __global__ void matrix_mul(float *A, int *B, float *C, float *gates, int state_s
         c = gates[(round * 4) + 2];
         d = gates[(round * 4) + 3];
         
-
-        int flipped = i ^ (1 << round);
-        if (i < fragment_size){
+        for (int x=0; x < 4; x++){
+            int i = elements[x]; 
+            int flipped = i ^ (1 << round);
             if (flipped  > i){
                 float s_a_i, s_a_flipped;
                 s_a_i = S_A[i];
@@ -302,10 +314,10 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
-    // Launch the Matrix Multiplication CUDA Kernel
-    // Using 2^6 threadBlocks it work - there is divergence in kernel code
-    // reduce the threads to 2^5
-    int threadsPerBlock = fragment_size;
+    // This is where the thread coarsening happens. In the original version,
+    // we use all 64 threads, but since we mapped 4 elements to 1 in our kernel
+    // function, we can use 16 threads instead of 64.
+    int threadsPerBlock = fragment_size / 4;  // for thread coarsening
     int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
     matrix_mul<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, gates_device, numElements, inactive_bits_device, inactive_bit_count);
     err = cudaGetLastError();

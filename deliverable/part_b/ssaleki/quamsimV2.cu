@@ -302,10 +302,9 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
-    // Launch the Vector Add CUDA Kernel
-    // Using 2^6 threadBlocks it work - there is divergence in our so we cant
-    // reduce the threads to 2^6 yet
-    // So 2^5 threads causes error
+    // Launch the Matrix Multiplication CUDA Kernel
+    // Using 2^6 threadBlocks it work - there is divergence in kernel code
+    // reduce the threads to 2^5
     int threadsPerBlock = fragment_size;
     int blocksPerGrid =(numElements + threadsPerBlock - 1) / threadsPerBlock;
     matrix_mul<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, gates_device, numElements, inactive_bits_device, inactive_bit_count);
