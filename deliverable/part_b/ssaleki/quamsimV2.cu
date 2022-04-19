@@ -196,7 +196,6 @@ int main(int argc, char **argv){
 
     // Copy the host input vectors A and B in host memory to the device input vectors in
     // device memory
-    printf("Memory corruption #1\n");
     err = cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
 
     if (err != cudaSuccess)
