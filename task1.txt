@@ -1,0 +1,6 @@
+# Data Collection for Task
+Test, TestSuite, SkipL1D, IPC
+BFS, ISPASS, False, 217.5687
+BFS, ISPASS, True, 167.9066
+LPS, ISPASS, True, 408.8568
+LPS, ISPASS, True, 383.1095
