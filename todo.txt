@@ -1,0 +1,56 @@
+- implement cache-based profiling (how)
+- keep data per-sm (simt core)
+-- per address, reference
+< SM 0, kernel 1 : addr1 ref, addr2 ref, ...addrn ref
+kernel 2 : addr1 ref, addr2 ref, ...addrn ref
+...
+kernel n : addr1 ref, addr2 ref, ...addrn ref >
+<SIMT CORE>
+	<kernel 1: addr1 ref, addr2 ref, addrn ref
+	<kernel 2:
+	<kernel 3:
+	...
+	<kernel n:>
+
+array of structs? // vector of structs?
+struct block_ref {
+   unsigned long long address;
+   unsigned int         count;
+} 
+
+std::map<unsigned long long, int> l1d_cache_references_per_block;
+//how to keep the data for per kernel?
+
+//m_core[i] in shader.cc
+//each core calls a second kernel after completing a cycle
+//store map with 2 keys?
+while kernel.l1d_access(addr){
+	l1d_cache_references_per_block[addr]++;
+
+}
+
+- store this data in a file somewhere 
+  This is nested data, how do you store it?
+  - Core > Kernel > Refs
+  - core, kernel, ref, count
+- load this data before doing a rerun
+- All the SIMT core related stuff is implemented via shader_core_ctx.cc/h. So to keeo track of per-SIMT Core stats, you want to allocate the profiler/data structure in the shader_core_ctx.cc
+- print <core_id, kernel_id, addref, count>
+        <m_core->sid,
+- in ldst_unit::cycle, memory_cycle, you want to implement the cache bypassing based on the logic. 
+
+// calling within the ldst_unit
+SIMTCore Id                                             m_core->get_sid(),
+Address Ref                 				access.get_addr(),
+Kernel ID                 		  m_core->get_kernel()->get_uid(),
+Reference Count   m_core->addr_ref_stat_per_simt_core[access.get_addr()]);
+
+// implement a method or something to store the data for a shader_core to a file
+-[x] find where all the stats related to shader_core are being calculated and stored
+-[x] Finding someplace after the simulation is over and grabbing all the stats from shader_core
+  stats is quite difficult. I am looking at gpu-sim.cc for examples but unsure if there
+  is any there. Looks like we may have to do an intermediate step to calculate all for the cluster?
+  and collect from the cluster. I am not sure if m_stats is protected
+
+- Load up the hardcoded file before starting the execution 
+// implement a logic to grab the data from the said file
