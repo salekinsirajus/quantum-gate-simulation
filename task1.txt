@@ -8,3 +8,7 @@ NN, ISPASS, False, 345.3974
 NN, ISPASS, True, 144.1486 
 NQU, ISPASS, True,  30.7699
 NQU, ISPASS, True,  30.4185
+HS, Rodinia, True, 707.6299
+HS, Rodinia, False,  701.3718
+BP, Rodinia, True, 671.3728 
+BP, Rodinia, False, 675.6067 
